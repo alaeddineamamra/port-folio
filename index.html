@@ -415,7 +415,7 @@ function showNotification(message, type = 'success') {
 // ========== دالة إرسال البيانات إلى n8n ==========
 async function sendOrderToN8n(orderData) {
   // ⚠️ مهم: ضع هنا عنوان الـ Webhook الخاص بـ n8n الخاص بك
-  const webhookUrl = 'https://alaeddinebri.app.n8n.cloud/webhook-test/46feb7b6-f8d8-4d1d-af9b-bf3fbe303f44';
+  const webhookUrl = 'https://alaeddinebri.app.n8n.cloud/webhook/46feb7b6-f8d8-4d1d-af9b-bf3fbe303f44';
   
   try {
     const response = await fetch(webhookUrl, {
@@ -529,4 +529,5 @@ submitBtn.addEventListener('click', async ()=>{
 </script>
 
 </body>
+
 </html>
