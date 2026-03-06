@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home Food Order</title>
+<style>
+body{
+  margin:0;
+  font-family: 'Arial', sans-serif;
+  min-height:100vh;
+  background: linear-gradient(120deg, #ffd194 0%, #ff758c 100%);
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding-top:20px;
+}
+
+.container{
+  background:white;
+  padding:25px;
+  border-radius:15px;
+  width:95%;
+  max-width:600px;
+  text-align:center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+h1{
+  margin-bottom:20px;
+  font-size:2em;
+  color:#ff4d4d;
+  font-weight:bold;
+  font-family: 'Verdana', sans-serif;
+}
+
+.user-info{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.user-info input{
+  padding:10px;
+  border-radius:5px;
+  border:1px solid #ccc;
+  font-size:16px;
+}
+
+.section-title{
+  text-align:left;
+  font-size:1.2em;
+  font-weight:bold;
+  margin:15px 0 5px 0;
+  color:#ff4d4d;
+}
+
+.menu{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px 10px;
+  border-radius:10px;
+  background: linear-gradient(90deg, #fff1e6, #ffe0b2);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.item span{
+  font-weight:bold;
+  color:#ff4d4d;
+}
+
+.qty-container{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+.qty-btn{
+  padding:5px 10px;
+  background:#ff4d4d;
+  color:white;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
+  font-weight:bold;
+  transition: background 0.2s;
+}
+
+.qty-btn:disabled{
+  background:#ccc;
+  cursor: not-allowed;
+}
+
+.qty-num{
+  width:30px;
+  text-align:center;
+  font-weight:bold;
+}
+
+.price{
+  margin-left:10px;
+  font-weight:bold;
+  color:#333;
+}
+
+.submit-btn{
+  margin-top:20px;
+  padding:12px;
+  background:#ff4d4d;
+  border:none;
+  color:white;
+  font-size:16px;
+  border-radius:8px;
+  cursor:pointer;
+  transition: background 0.3s;
+}
+
+.submit-btn:hover{
+  background:#e03e3e;
+}
+
+.submit-btn:disabled{
+  background:#ccc;
+  cursor:not-allowed;
+}
+
+#order-summary{
+  margin-top:15px;
+  text-align:left;
+  font-weight:bold;
+  color:#333;
+  white-space: pre-line;
+}
+
+/* رسالة التحميل والإشعارات */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #ff4d4d;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  z-index: 1001;
+  animation: slideIn 0.3s ease;
+}
+
+.notification.success {
+  background: #4CAF50;
+}
+
+.notification.error {
+  background: #f44336;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏠 Home Food</h1>
+
+    <div class="user-info">
+      <input type="text" id="customer-name" placeholder="Your Name">
+      <input type="tel" id="customer-phone" placeholder="Phone Number">
+    </div>
+
+    <div id="menu-container" class="menu"></div>
+
+    <button class="submit-btn" id="submit-btn" disabled>Submit the Request</button>
+    <div id="order-summary"></div>
+</div>
+
+<!-- إضافة عناصر للتحميل والإشعارات -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner">
+    <div class="spinner"></div>
+    <p>جاري إرسال الطلب...</p>
+  </div>
+</div>
+
+<script>
+// ---------- المنتجات مع الأسعار ----------
+const sandwiches = [
+  {name:"Burger", price:5},
+  {name:"Cheese Burger", price:6},
+  {name:"Chicken Burger", price:6},
+  {name:"Double Burger", price:8},
+  {name:"Veggie Burger", price:5},
+  {name:"Fish Sandwich", price:6},
+  {name:"Grilled Chicken Sandwich", price:7},
+  {name:"Spicy Chicken Sandwich", price:7},
+  {name:"Bacon Burger", price:7},
+  {name:"Mushroom Burger", price:6},
+  {name:"BBQ Burger", price:8},
+  {name:"Tuna Sandwich", price:6},
+  {name:"Egg Sandwich", price:4},
+  {name:"Club Sandwich", price:7},
+  {name:"Ham Sandwich", price:6},
+  {name:"Salami Sandwich", price:6},
+  {name:"Turkey Sandwich", price:7},
+  {name:"BLT Sandwich", price:6},
+  {name:"Cheesesteak Sandwich", price:8},
+  {name:"Pulled Pork Sandwich", price:8}
+];
+
+const drinks = [
+  {name:"Coca Cola", price:2},
+  {name:"Pepsi", price:2},
+  {name:"Sprite", price:2},
+  {name:"7 Up", price:2},
+  {name:"Fanta Orange", price:2},
+  {name:"Fanta Lemon", price:2},
+  {name:"Mountain Dew", price:3},
+  {name:"Dr Pepper", price:3},
+  {name:"Root Beer", price:3},
+  {name:"Iced Tea", price:2},
+  {name:"Lemonade", price:2},
+  {name:"Water", price:1},
+  {name:"Red Bull", price:4},
+  {name:"Monster", price:4},
+  {name:"Ginger Ale", price:2},
+  {name:"Soda Water", price:1},
+  {name:"Apple Juice", price:2},
+  {name:"Orange Juice", price:2},
+  {name:"Tomato Juice", price:2},
+  {name:"Mango Juice", price:3}
+];
+
+const dishes = [
+  {name:"Chicken Nuggets", price:5},
+  {name:"French Fries", price:3},
+  {name:"Mozzarella Sticks", price:4},
+  {name:"Chicken Wings", price:6},
+  {name:"Grilled Chicken", price:8},
+  {name:"Beef Steak", price:10},
+  {name:"Pasta Bolognese", price:7},
+  {name:"Spaghetti Carbonara", price:7},
+  {name:"Salmon Fillet", price:9},
+  {name:"Fish & Chips", price:8},
+  {name:"Shrimp Tempura", price:9},
+  {name:"Pizza Margherita", price:6},
+  {name:"Pepperoni Pizza", price:7},
+  {name:"Vegetable Pizza", price:6},
+  {name:"Lasagna", price:7},
+  {name:"Taco Plate", price:6},
+  {name:"Burrito", price:7},
+  {name:"Nachos", price:5},
+  {name:"Fried Rice", price:6},
+  {name:"Chicken Curry", price:7},
+  {name:"Beef Burger Plate", price:8},
+  {name:"Veggie Plate", price:7},
+  {name:"Mixed Grill", price:12},
+  {name:"Kebab Plate", price:10},
+  {name:"Sushi Set", price:12},
+  {name:"Ramen Bowl", price:9},
+  {name:"Pad Thai", price:8},
+  {name:"BBQ Ribs", price:12},
+  {name:"Caesar Salad", price:5},
+  {name:"Greek Salad", price:5}
+];
+
+// ---------- إنشاء واجهة المنتجات ----------
+const menuContainer = document.getElementById('menu-container');
+
+function createSection(title, items){
+  const sectionTitle = document.createElement('div');
+  sectionTitle.className = 'section-title';
+  sectionTitle.innerText = title;
+  menuContainer.appendChild(sectionTitle);
+
+  items.forEach(itemObj => {
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'item';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.innerText = itemObj.name;
+
+    const priceSpan = document.createElement('span');
+    priceSpan.className = 'price';
+    priceSpan.innerText = `$${itemObj.price}`;
+
+    const qtyContainer = document.createElement('div');
+    qtyContainer.className = 'qty-container';
+    qtyContainer.dataset.item = itemObj.name;
+    qtyContainer.dataset.price = itemObj.price;
+
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'qty-btn minus';
+    minusBtn.disabled = true;
+    minusBtn.innerText = '-';
+
+    const qtyNum = document.createElement('span');
+    qtyNum.className = 'qty-num';
+    qtyNum.innerText = '0';
+
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'qty-btn plus';
+    plusBtn.innerText = '+';
+
+    qtyContainer.appendChild(minusBtn);
+    qtyContainer.appendChild(qtyNum);
+    qtyContainer.appendChild(plusBtn);
+
+    itemDiv.appendChild(nameSpan);
+    itemDiv.appendChild(priceSpan);
+    itemDiv.appendChild(qtyContainer);
+    menuContainer.appendChild(itemDiv);
+
+    // أحداث + و -
+    plusBtn.addEventListener('click', ()=>{
+      let value = parseInt(qtyNum.innerText);
+      value++;
+      qtyNum.innerText = value;
+      minusBtn.disabled = value === 0;
+    });
+
+    minusBtn.addEventListener('click', ()=>{
+      let value = parseInt(qtyNum.innerText);
+      if(value > 0){
+        value--;
+        qtyNum.innerText = value;
+        minusBtn.disabled = value === 0;
+      }
+    });
+  });
+}
+
+// إنشاء الأقسام
+createSection("Sandwiches", sandwiches);
+createSection("Drinks", drinks);
+createSection("Dishes", dishes);
+
+// ---------- تفعيل زر الإرسال فقط إذا كتب المستخدم اسمه ورقمه ----------
+const nameInput = document.getElementById('customer-name');
+const phoneInput = document.getElementById('customer-phone');
+const submitBtn = document.getElementById('submit-btn');
+
+function checkInputs(){
+  phoneInput.value = phoneInput.value.replace(/\D/g,''); // أي شيء غير رقم يُحذف
+  submitBtn.disabled = !(nameInput.value.trim() && phoneInput.value.trim());
+}
+
+nameInput.addEventListener('input', checkInputs);
+phoneInput.addEventListener('input', checkInputs);
+
+// ---------- عناصر واجهة المستخدم الإضافية ----------
+const loadingOverlay = document.getElementById('loadingOverlay');
+
+// دالة إظهار الإشعارات
+function showNotification(message, type = 'success') {
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.innerText = message;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
+}
+
+// ========== دالة إرسال البيانات إلى n8n ==========
+async function sendOrderToN8n(orderData) {
+  // ⚠️ مهم: ضع هنا عنوان الـ Webhook الخاص بـ n8n الخاص بك
+  const webhookUrl = 'https://alaeddinebri.app.n8n.cloud/webhook-test/46feb7b6-f8d8-4d1d-af9b-bf3fbe303f44';
+  
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error sending to n8n:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ========== تعديل زر الإرسال الرئيسي ==========
+submitBtn.addEventListener('click', async ()=>{
+  const customerName = nameInput.value.trim();
+  const customerPhone = phoneInput.value.trim();
+  
+  // التحقق من وجود اسم ورقم هاتف
+  if (!customerName || !customerPhone) {
+    showNotification('Please enter your name and phone number', 'error');
+    return;
+  }
+  
+  let summary = `Customer: ${customerName}\nPhone: ${customerPhone}\n\nOrder Summary:\n`;
+  let total = 0;
+  let hasOrder = false;
+
+  const orderItems = [];
+
+  // جمع العناصر المطلوبة
+  document.querySelectorAll('.qty-container').forEach(container=>{
+    const item = container.dataset.item;
+    const price = parseFloat(container.dataset.price);
+    const qty = parseInt(container.querySelector('.qty-num').innerText);
+    if(qty > 0){
+      summary += `${item} x ${qty} = $${(price*qty).toFixed(2)}\n`;
+      total += price*qty;
+      hasOrder = true;
+      orderItems.push({
+        name: item,
+        quantity: qty,
+        price: price,
+        subtotal: price * qty
+      });
+    }
+  });
+
+  if(!hasOrder){
+    showNotification('Please select at least one item', 'error');
+    return;
+  }
+
+  summary += `\nTotal: $${total.toFixed(2)}`;
+  document.getElementById('order-summary').innerText = summary;
+
+  // ---------- تحضير البيانات للإرسال إلى n8n ----------
+  const orderData = {
+    orderId: 'ORD-' + Date.now(), // رقم طلب فريد
+    timestamp: new Date().toISOString(),
+    customer: {
+      name: customerName,
+      phone: customerPhone
+    },
+    items: orderItems,
+    total: total,
+    summary: summary
+  };
+
+  // إظهار شاشة التحميل
+  loadingOverlay.style.display = 'flex';
+  submitBtn.disabled = true;
+
+  // إرسال البيانات إلى n8n
+  const result = await sendOrderToN8n(orderData);
+
+  // إخفاء شاشة التحميل
+  loadingOverlay.style.display = 'none';
+
+  if (result.success) {
+    showNotification('✅ Order sent successfully!', 'success');
+    
+    // ---------- إعادة تعيين الحقول ----------
+    nameInput.value = '';
+    phoneInput.value = '';
+    checkInputs(); // لإعادة تعطيل زر الإرسال
+
+    document.querySelectorAll('.qty-container').forEach(container=>{
+      container.querySelector('.qty-num').innerText = '0';
+      container.querySelector('.minus').disabled = true;
+    });
+    
+    // يمكنك إضافة رد من n8n هنا إذا أردت
+    if (result.data && result.data.message) {
+      console.log('Response from n8n:', result.data);
+    }
+  } else {
+    showNotification('❌ Failed to send order. Please try again.', 'error');
+    submitBtn.disabled = false; // إعادة تفعيل الزر في حالة الفشل
+  }
+});
+</script>
+
+</body>
+</html>
